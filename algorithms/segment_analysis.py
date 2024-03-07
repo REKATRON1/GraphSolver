@@ -7,6 +7,9 @@ class LinAprx():
 		if p2[0] != p1[0]:
 			self.slope: float = (p2[1]-p1[1])/(p2[0]-p1[0])
 			self.constant: float = p1[1]-p1[0]*self.slope
+		else:
+			self.slope: float = math.inf
+			self.constant: float = p1[0]
 	def get(self, x: float) -> float:
 		return self.slope * x + self.constant
 	def intersect(l1: object, l2: object) -> tuple[float, float]:
@@ -28,7 +31,8 @@ def check_intersect(e1: tuple[tuple[float, float], tuple[float, float]], e2: tup
 		p11, p12 = p12, p11
 	if p22[0] < p21[0]:
 		p21, p22 = p22, p21
-	if p12[0] <= p21[0] or p11[0] >= p22[0] or (p11[0] == p12[0] and p21[0] == p22[0]):
+	#p_1 always has smaller x-coord then p_2
+	if p12[0] <= p21[0] or p11[0] >= p22[0] or (p11[0] == p12[0] and p21[0] == p22[0]) or (p11[1] == p21[1] and p12[1] == p22[1]):
 		return False
 	if p21[0] == p22[0]:
 		p11, p12, p21, p22 = p21, p22, p11, p12
@@ -39,12 +43,73 @@ def check_intersect(e1: tuple[tuple[float, float], tuple[float, float]], e2: tup
 	else:
 		prx_1 = LinAprx(p11, p12)
 		prx_2 = LinAprx(p21, p22)
-		intersect_x, intersect_y = LinAprx.intersect(prx_1, prx_2)
+		if prx_1.slope == prx_2.slope:
+			return prx_2.constant == prx_1.constant
+		else:
+			intersect_x, intersect_y = LinAprx.intersect(prx_1, prx_2)
 		return intersect_on_edge(e1, (intersect_x, intersect_y)) and intersect_on_edge(e2, (intersect_x, intersect_y))
 
-def optimize_intersects(path: list[tuple[float, float]]) -> tuple[list, list]:
+def breakup_edge_covers(path: list[tuple[float, float]]) -> tuple[list, list]:
 	ani = []
-	cm, max_swaps = 0, 100
+	cm, max_breakups = 0, 1000
+	overlaps = []
+	start = True
+	while cm < max_breakups and (start or len(overlaps) > 0):
+		start = False
+		cm += 1
+		if len(overlaps) > 0:
+			new_path = path.copy()
+			start, end, typ = overlaps.pop(0)
+			if typ < 2:
+				#max_end > max_start
+				#typ = index of bigger
+				max_point = new_path.pop(start+typ)
+				new_path.insert(end, max_point)
+				
+			else:
+				#max_start >(=) max_end
+				typ -= 2
+				#typ = index of bigger
+				max_point = new_path.pop(start+typ)
+				new_path.insert(end+1, max_point)
+			
+			ani.append(((start, end), path, new_path))
+			
+			path = new_path
+		
+		overlaps = []
+		edges = []
+		for x in range(len(path)-1):
+			p1, p2 = path[x], path[x+1]
+			edges.append([p1,p2])
+		for i, e1 in enumerate(edges):
+			aprxi = LinAprx(e1[0], e1[1])
+			for j, e2 in enumerate(edges):
+				if i >= j or (i == 0 and j == len(edges) - 1):
+					continue
+				aprxj = LinAprx(e2[0], e2[1])
+				if aprxi.slope == aprxj.slope and aprxi.constant == aprxj.constant:
+					if aprxi.slope != math.inf:
+						if min(e1[0][0], e1[1][0]) < max(e2[0][0], e2[1][0]) and max(e1[0][0], e1[1][0]) > min(e2[0][0], e2[1][0]) or (
+							min(e1[0][0], e1[1][0]) == min(e2[0][0], e2[1][0]) or max(e1[0][0], e1[1][0]) == max(e2[0][0], e2[1][0])):
+							if max(e1[0][0], e1[1][0]) < max(e2[0][0], e2[1][0]):
+								overlaps.append((i,j,e1[0][0] < e1[1][0]))
+							else:
+								overlaps.append((i,j,2 + int(e2[0][0] < e2[1][0])))
+					elif min(e1[0][1], e1[1][1]) < max(e2[0][1], e2[1][1]) and max(e1[0][1], e1[1][1]) > min(e2[0][1], e2[1][1]) or (
+							min(e1[0][1], e1[1][1]) == min(e2[0][1], e2[1][1]) or max(e1[0][1], e1[1][1]) == max(e2[0][1], e2[1][1])):
+						if max(e1[0][1], e1[1][1]) < max(e2[0][1], e2[1][1]):
+							overlaps.append((i,j,e1[0][1] < e1[1][1]))
+						else:
+							overlaps.append((i,j,2 + int(e1[0][1] < e1[1][1])))
+	return path, ani
+	
+
+
+def optimize_intersects(path: list[tuple[float, float]]) -> tuple[list, list]:
+	path, ani = breakup_edge_covers(path)
+
+	cm, max_swaps = 0, 1000
 	intersections = []
 	start = True
 	while cm < max_swaps and (start or len(intersections) > 0):
@@ -107,21 +172,65 @@ def count_acute_angles(path: list[tuple[float, float]]) -> int:
 		n += is_acute(p1, p2, p3)
 	return n
 
-def func(func_idx: int, x: float, avg_x: float=0.0) -> float:
-	match func_idx:
-		case 0:
-			return x
-		case 1:
-			return (x/avg_x)*(x/avg_x-2)
-		case 2:
-			return sum([f*(x**i) for i, f in enumerate([0, -2/avg_x, 5/(avg_x**2), -4/(avg_x**3), 1/(avg_x**4)])])
-		case _:
-			return 0.0
-
-
-def get_distance_matrix(points: list[tuple[float, float]], use_min: bool=True, use_func: int=0) -> tuple[list[list[float]], list[tuple[float, int, int]]]:
-	distances, heap = np.zeros((len(points), len(points))), []
+def get_heap(points: list[tuple[float, float]], distance_matrix: list[list[float]], use_min: bool=True, mode: int=0) -> list[tuple[float, int, int]]:
+	heap = []
 	avg_distance, c = 0, 0
+	spread: tuple[float, float, float, float] = math.inf, -math.inf, math.inf, -math.inf
+
+	for x, p1 in enumerate(points):
+		spread = min(spread[0], p1[0]), max(spread[1], p1[0]), min(spread[2], p1[1]), max(spread[3], p1[1])
+		for y, p2 in enumerate(points):
+			if x >= y:
+				continue
+			avg_distance += distance_matrix[x,y]
+			c += 1
+	
+	def polyn_func(func_idx: int, x: float, avg_x: float=0.0, inverse: bool=False) -> float:
+		ret = 0
+		match func_idx:
+			case 0:
+				ret = x
+			case 1:
+				ret = (x/avg_x)*(x/avg_x-2)
+			case 2:
+				ret = sum([f*(x**i) for i, f in enumerate([0, -2/avg_x, 5/(avg_x**2), -4/(avg_x**3), 1/(avg_x**4)])])
+		if inverse:
+			return -ret
+		else:
+			return ret
+	
+	def coord_func(coord_idx: int, edge: tuple[tuple[float, float], tuple[float, float]], spread: tuple[float], 
+						inverse: bool=False) -> float:
+		p1, p2 = edge
+		c1, c2 = p1[coord_idx], p2[coord_idx]
+		mi, ma = spread[2*coord_idx], spread[2*coord_idx+1]
+		offset = .1*max(np.abs(mi), np.abs(ma))
+		mi -= offset
+		ma += offset
+		if c2 < c1:
+			c1, c2 = c2, c1
+		if inverse:
+			return ((-c1 + ma)/(ma-mi))*((-c2 + ma)/(ma-mi))
+		else:
+			return ((c1 - mi)/(ma-mi))*((c2 - mi)/(ma-mi))
+
+	avg_distance /= c
+	for x, p1 in enumerate(points):
+		for y, p2 in enumerate(points):
+			if x >= y:
+				continue
+			d = distance_matrix[x,y]
+			match mode:
+				case 0 | 1 | 2:
+					heapq.heappush(heap, (polyn_func(mode, d, avg_distance, not use_min), x, y))
+				case 3 | 4:
+					heapq.heappush(heap, (coord_func(mode-3, (p1,p2), spread, not use_min), x, y))
+
+	return heap
+
+def get_distance_matrix(points: list[tuple[float, float]], use_min: bool=True, use_func: int=0) -> list[list[float]]:
+	distances = np.zeros((len(points), len(points)))
+	
 	for x, p1 in enumerate(points):
 		for y, p2 in enumerate(points):
 			if x >= y:
@@ -129,27 +238,8 @@ def get_distance_matrix(points: list[tuple[float, float]], use_min: bool=True, u
 			d = distance(p1, p2)
 			distances[x,y] = d
 			distances[y,x] = d
-			if use_func == 0:
-				if use_min:
-					heapq.heappush(heap, (func(use_func, d), x, y))
-				else:
-					heapq.heappush(heap, (-func(use_func, d), x, y))
-			else:
-				avg_distance += d
-				c += 1
-	if use_func == 0:
-		return distances, heap
-	avg_distance /= c
-	for x, _ in enumerate(points):
-		for y, _ in enumerate(points):
-			if x >= y:
-				continue
-			d = distances[x,y]
-			if use_min:
-				heapq.heappush(heap, (func(use_func, d, avg_distance), x, y))
-			else:
-				heapq.heappush(heap, (-func(use_func, d, avg_distance), x, y))
-	return distances, heap
+
+	return distances
 
 def total_length(edges: list[tuple[tuple[float, float], tuple[float, float]]]) -> float:
 	if len(edges) == 0:

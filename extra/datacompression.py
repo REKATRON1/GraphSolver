@@ -35,7 +35,7 @@ class MetaInfos():
 										['Animate', 'Looping']],
 										[[]],
 									['Keep Relations', 'Include Scal.'],
-									['Use Min', 'Use Max', 'Default', 'Shifted Parabola', 'Double Parabola'],
+									['Use Min', 'Use Max', 'Default', 'Shifted Parabola', 'Double Parabola', 'X', 'Y'],
 									['Solve']]
 		self.all_buttons_activity: list[list[bool]] = [[False for x in l] for l in self.get_all_buttons()]
 		self.switch_button('Min Graph')
@@ -135,7 +135,7 @@ class AlgoInfos():
 		start_time = time.perf_counter()
 		meta_infos.active_status = 1
 		extras = {meta_infos.get_all_buttons()[2][i]:True for i, x in enumerate(meta_infos.all_buttons_activity[2]) if x}
-		if meta_infos.active_mode == 0:
+		if meta_infos.active_mode != 2:
 			for k in {meta_infos.get_all_buttons()[-2][i]:True for i, x in enumerate(meta_infos.all_buttons_activity[-2]) if x}:
 				if k in meta_infos.get_all_buttons()[-2][2:]:
 					extras['Func idx'] = meta_infos.get_all_buttons()[-2][2:].index(k)
@@ -162,7 +162,8 @@ class Solution():
 				return graph_solver.find_subgraph(points, mode=solving_type, use_min=extras_enables.get('Use Min', False), use_func=extras_enables.get('Func idx', 0))
 			case 1:
 				return path_finder.find_path_in_graph(points, mode=solving_type, tour=extras_enables.get('Enable Tour', False), 
-					intersection_check=extras_enables.get('Intersect Optim.', False), avoid_acute_angles=extras_enables.get('No Acute Angles', False))
+					intersection_check=extras_enables.get('Intersect Optim.', False), avoid_acute_angles=extras_enables.get('No Acute Angles', False),
+					use_func=extras_enables.get('Func idx', 0), use_min=extras_enables.get('Use Min', False))
 
 class VisualInfos():
 	def __init__(self, meta_infos):

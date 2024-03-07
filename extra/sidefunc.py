@@ -22,7 +22,7 @@ from data.example_data import tc
 def switch_button(meta_infos, algo_infos, visual_infos, button_name: str) -> bool:
 	exact_one_lists: list[list[str]] = [['Min Graph','Pathsolving','NaN'], 
 						['Brute Force', 'Closest PtP', 'Multi cPtP', 'Addbuid'],
-						['Use Min', 'Use Max'], ['Default', 'Shifted Parabola', 'Double Parabola']]
+						['Use Min', 'Use Max'], ['Default', 'Shifted Parabola', 'Double Parabola', 'X', 'Y']]
 	distinct_lists: list[list[str]] = [['Addbuid', 'No Acute Angles'], ['Intersect Optim.', 'No Acute Angles']]
 	dependent_lists: list[list[str]] = [['Animate', 'Looping'], ['Keep Relations', 'Include Scal.']]
 

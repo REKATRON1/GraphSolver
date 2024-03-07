@@ -11,9 +11,10 @@ def find_subgraph(points: list[tuple[int, int]], mode: int=0, use_min: bool=True
 			sol = solve_graph_addb(points, use_min, use_func)
 	return datacompression.Solution(solved_path=sol, animation_path=sol, extra_animation_path=[], length=sga.total_length(sol))
 
-def solve_graph_addb(points, use_min=True, use_func=0):
+def solve_graph_addb(points: list[tuple[int, int]], use_min: bool=True, mode: int=0):
 	edges = []
-	distance_matrix, distance_heap = sga.get_distance_matrix(points, use_min, use_func)
+	distance_matrix = sga.get_distance_matrix(points)
+	edge_heap = sga.get_heap(points, distance_matrix, use_min, mode)
 	subgraph_marker = {}
 	max_maker = 0
 	
@@ -24,8 +25,8 @@ def solve_graph_addb(points, use_min=True, use_func=0):
 
 	for _ in range(len(points)-1):
 		added = False
-		while not added and len(distance_heap) > 0:
-			next_distance = heapq.heappop(distance_heap)
+		while not added and len(edge_heap) > 0:
+			next_distance = heapq.heappop(edge_heap)
 			_, ip1, ip2 = next_distance
 			if subgraph_marker.get(ip1) == None or subgraph_marker.get(ip2) == None or subgraph_marker.get(ip1) != subgraph_marker.get(ip2):
 				edges.append((points[ip1], points[ip2]))

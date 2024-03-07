@@ -82,7 +82,7 @@ def get_key_inputs(key_infos, meta_infos, algo_infos, visual_infos) -> None:
 			meta_infos.active_status = 2
 		else:
 			meta_infos.active_status = 0
-	if meta_infos.active_mode == 0 and meta_infos.active_status != 1 and key_infos[pg.K_e]:
+	if meta_infos.active_mode in [0,1] and meta_infos.active_status != 1 and key_infos[pg.K_e]:
 		if meta_infos.active_status != 3:
 			meta_infos.active_status = 3
 		else:

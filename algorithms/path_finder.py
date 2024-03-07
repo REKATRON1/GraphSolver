@@ -6,7 +6,8 @@ from algorithms import aco
 from extra import datacompression
 
 def find_path_in_graph(points: list[tuple[int, int]], mode: int=1, tour: bool=False, 
-						intersection_check: bool=False, avoid_acute_angles: bool=False) -> object:
+						intersection_check: bool=False, avoid_acute_angles: bool=False,
+						use_func: int=0, use_min: bool=True) -> object:
 	if avoid_acute_angles:
 		angles_threshold_to_avoid: float = 90.0
 	else:
@@ -22,7 +23,7 @@ def find_path_in_graph(points: list[tuple[int, int]], mode: int=1, tour: bool=Fa
 		case 2:
 			sol = solve_graph_mptp(points, tour, angles_threshold_to_avoid)
 		case 3:
-			sol, ani = solve_graph_addb(points, tour, angles_threshold_to_avoid)
+			sol, ani = solve_graph_addb(points, tour, angles_threshold_to_avoid, use_func, use_min)
 		case 4:
 			sol, ani = aco.solve_graph(points, 100, tour, angles_threshold_to_avoid)
 
@@ -199,9 +200,10 @@ def solve_graph_mptp_int(points, prev1, prev2, mask, angles_threshold_to_avoid):
 		left.append(n_prev1[-1])
 	return left, cright
 
-def solve_graph_addb(points, tour, angles_threshold_to_avoid):
+def solve_graph_addb(points: list[tuple[float, float]], tour, angles_threshold_to_avoid, mode: int=0, use_min: bool=True):
 	edges = []
-	distance_matrix, distance_heap = sga.get_distance_matrix(points)
+	distance_matrix = sga.get_distance_matrix(points)
+	distance_heap = sga.get_heap(points, distance_matrix, use_min, mode)
 	adjacency_count = [[] for _ in points]
 	subgraph_marker = {}
 	max_maker = 0
